@@ -1,0 +1,29 @@
+abstract final class AppSpacing {
+  static const double xSmall = 4;
+  static const double small = 8;
+  static const double medium = 16;
+  static const double large = 24;
+  static const double xLarge = 32;
+  static const double xxLarge = 48;
+  static const double pagePadding = 24;
+  static const double mobilePagePadding = 16;
+  static const double headerHeight = 76;
+  static const double sidebarWidth = 248;
+  static const double minimumTouchTarget = 48;
+  static const double smallIconSize = 32;
+  static const double statIconSize = 22;
+  static const double badgeHorizontalPadding = 10;
+  static const double badgeVerticalPadding = 5;
+  static const double progressIndicatorSize = 20;
+  static const double howItWorksCardHeight = 96;
+  static const double problemTypeCardHeight = 136;
+  static const double queueDescriptionWidth = 210;
+  static const double departmentBarHeight = 12;
+  static const double departmentCountWidth = 24;
+  static const double heroDescriptionMaxWidth = 620;
+  static const double contentMaxWidth = 1100;
+  static const double formMaxWidth = 440;
+  static const double cornerRadius = 10;
+  static const double compactBreakpoint = 600;
+  static const double desktopBreakpoint = 1024;
+}
