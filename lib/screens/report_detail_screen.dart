@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../constants/app_strings.dart';
 import '../error_messages.dart';
 import '../format.dart';
 import '../models/report.dart';
+import '../routing/routes.dart';
 import '../services/api_exception.dart';
+import '../services/mock_bayan_sense_service.dart';
 import '../state/reports_state.dart';
-import '../widgets/centered_content.dart';
-import '../widgets/status_chip.dart';
+import '../widgets/responsive_scaffold.dart';
+import '../widgets/status_badge.dart';
 import '../widgets/status_message.dart';
+import 'resident/resident_home_screen.dart';
 
 /// Report Status Detail: one report, for the resident who submitted it.
 class ReportDetailScreen extends StatefulWidget {
@@ -54,14 +58,23 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
         _error = messageForLoadReport(e);
         _loading = false;
       });
+    } on MockServiceException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.message;
+        _loading = false;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(referenceFor(widget.reportId))),
-      body: CenteredContent(child: _body(context)),
+    return ResponsiveScaffold(
+      title: referenceFor(widget.reportId),
+      role: 'resident',
+      selectedRoute: Routes.myReports,
+      items: ResidentHomeScreen.navigationItems,
+      child: _body(context),
     );
   }
 
@@ -71,32 +84,49 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
     if (report == null) {
       return Padding(
         padding: const EdgeInsets.all(16),
-        child: StatusMessage(text: _error ?? 'Unable to load this report. Try again.',
-            kind: MessageKind.error, onRetry: _retry),
+        child: StatusMessage(
+            text: _error ?? 'Unable to load this report. Try again.',
+            kind: MessageKind.error,
+            onRetry: _retry),
       );
     }
     final textTheme = Theme.of(context).textTheme;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Row(children: [StatusChip(label: report.status)]),
+        Row(children: [StatusBadge(label: report.status)]),
         const SizedBox(height: 16),
-        _Row(label: 'Category', value: report.predictedCategory ?? 'Waiting for staff to decide'),
-        _Row(label: 'Sent to', value: report.assignedDepartment ?? 'Not assigned to a department'),
-        _Row(label: 'Submitted', value: formatDate(report.createdAt)),
-        _Row(label: 'Last updated', value: formatDate(report.updatedAt)),
+        _Row(
+            label: 'Category',
+            value: report.predictedCategory ?? 'Waiting for staff to decide'),
+        _Row(
+            label: 'Sent to',
+            value: report.assignedDepartment ?? 'Not assigned to a department'),
+        _Row(
+          label: AppStrings.submittedDate,
+          value: formatDate(report.createdAt),
+        ),
+        _Row(
+          label: AppStrings.lastUpdatedDate,
+          value: formatDate(report.updatedAt),
+        ),
+        const SizedBox(height: 8),
+        const StatusMessage(text: AppStrings.statusHistoryUnavailable),
         const SizedBox(height: 8),
         Text('Your description', style: textTheme.titleSmall),
         const SizedBox(height: 4),
         SelectableText(report.description),
         if (report.needsManualReview) ...[
           const SizedBox(height: 16),
-          const StatusMessage(text: 'A staff member will confirm the category for this report.'),
+          const StatusMessage(
+              text:
+                  'A staff member will confirm the category for this report.'),
         ],
         if (report.isOutOfScope) ...[
           const SizedBox(height: 16),
           const StatusMessage(
-            text: 'This was not something BayanSense handles. Please contact the barangay office '
+            text:
+                'This was not something BayanSense handles. Please contact the barangay office '
                 'directly about it.',
           ),
         ],
@@ -119,7 +149,9 @@ class _Row extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(width: 110, child: Text(label)),
-          Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600))),
+          Expanded(
+              child: Text(value,
+                  style: const TextStyle(fontWeight: FontWeight.w600))),
         ],
       ),
     );

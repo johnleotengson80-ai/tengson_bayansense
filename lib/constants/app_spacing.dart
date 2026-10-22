@@ -18,6 +18,11 @@ abstract final class AppSpacing {
   static const double howItWorksCardHeight = 96;
   static const double problemTypeCardHeight = 136;
   static const double queueDescriptionWidth = 210;
+  static const double reportTableRowMinHeight = 76;
+  static const double reportTableRowMaxHeight = 96;
+  static const double mobileStatCardAspectRatio = 2.5;
+  static const double tabletStatCardAspectRatio = 1.25;
+  static const double tabletStaffStatCardAspectRatio = 1;
   static const double departmentBarHeight = 12;
   static const double departmentCountWidth = 24;
   static const double heroDescriptionMaxWidth = 620;

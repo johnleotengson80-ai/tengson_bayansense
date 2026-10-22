@@ -3,6 +3,7 @@ class Routes {
   static const String root = '/';
   static const String login = '/login';
   static const String register = '/register';
+  static const String reportForm = '/report';
   static const String residentHome = '/resident/home';
   static const String submitReport = '/resident/submit-report';
   static const String myReports = '/resident/reports';
@@ -17,6 +18,7 @@ class Routes {
   static const String adminPersonnel = '/admin/personnel';
 
   static String reportDetail(int reportId) => '/resident/reports/$reportId';
+  static String staffReportDetail(int reportId) => '/staff/reports/$reportId';
 
   /// Where each role lands after logging in.
   static String homeFor(String role) {
@@ -48,6 +50,16 @@ int? parseReportId(String routeName) {
   final segments = Uri.tryParse(routeName)?.pathSegments ?? const <String>[];
   if (segments.length == 3 &&
       segments[0] == 'resident' &&
+      segments[1] == 'reports') {
+    return int.tryParse(segments[2]);
+  }
+  return null;
+}
+
+int? parseStaffReportId(String routeName) {
+  final segments = Uri.tryParse(routeName)?.pathSegments ?? const <String>[];
+  if (segments.length == 3 &&
+      segments[0] == 'staff' &&
       segments[1] == 'reports') {
     return int.tryParse(segments[2]);
   }

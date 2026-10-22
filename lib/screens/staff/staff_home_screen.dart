@@ -8,12 +8,15 @@ import '../../constants/app_text_styles.dart';
 import '../../format.dart';
 import '../../models/report.dart';
 import '../../routing/routes.dart';
-import '../../services/report_service.dart';
+import '../../services/api_exception.dart';
+import '../../services/bayan_sense_service.dart';
+import '../../services/mock_bayan_sense_service.dart';
 import '../../state/auth_state.dart';
 import '../../widgets/responsive_scaffold.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/stat_card.dart';
 import '../../widgets/status_badge.dart';
+import '../../widgets/status_message.dart';
 
 class StaffHomeScreen extends StatefulWidget {
   const StaffHomeScreen({super.key});
@@ -36,15 +39,26 @@ class StaffHomeScreen extends StatefulWidget {
 }
 
 class _StaffHomeScreenState extends State<StaffHomeScreen> {
-  late final Future<List<Report>> _queueFuture;
+  late Future<List<Report>> _queueFuture;
 
   @override
   void initState() {
     super.initState();
-    final department = context.read<AuthState>().account?.department;
-    _queueFuture = department == null
-      ? Future<List<Report>>.value(const <Report>[])
-        : context.read<ReportService>().reportsForDepartment(department);
+    _queueFuture = context.read<BayanSenseService>().listReports();
+  }
+
+  void _openReport(Report report) {
+    final auth = context.read<AuthState>();
+    final service = context.read<BayanSenseService>();
+    Navigator.of(context)
+        .pushNamed(Routes.staffReportDetail(report.reportId))
+        .then((_) {
+      if (mounted && auth.isAuthenticated && auth.role == 'staff') {
+        setState(() {
+          _queueFuture = service.listReports();
+        });
+      }
+    });
   }
 
   @override
@@ -71,16 +85,33 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
                 );
               }
               if (snapshot.hasError) {
-                return const _QueueError();
+                final error = snapshot.error;
+                final message = error is ApiException
+                    ? error.statusCode == 403
+                        ? AppStrings.accessDenied
+                        : error.message
+                    : error is MockServiceException
+                        ? error.message
+                        : AppStrings.loadReportsError;
+                return _QueueError(
+                  message: message,
+                  onRetry: () => setState(() {
+                    _queueFuture =
+                        context.read<BayanSenseService>().listReports();
+                  }),
+                );
               }
               final reports = List<Report>.of(snapshot.data ?? const <Report>[])
                 ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-              final received =
-                  reports.where((report) => report.status == AppStrings.received).length;
-              final inProgress =
-                  reports.where((report) => report.status == AppStrings.inProgress).length;
-              final resolved =
-                  reports.where((report) => report.status == AppStrings.resolved).length;
+              final received = reports
+                  .where((report) => report.status == AppStrings.received)
+                  .length;
+              final inProgress = reports
+                  .where((report) => report.status == AppStrings.inProgress)
+                  .length;
+              final resolved = reports
+                  .where((report) => report.status == AppStrings.resolved)
+                  .length;
               final needsReview =
                   reports.where((report) => report.needsManualReview).length;
               return Column(
@@ -89,14 +120,21 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
                   LayoutBuilder(
                     builder: (context, constraints) {
                       final columns =
-                          constraints.maxWidth < AppSpacing.compactBreakpoint ? 1 : 4;
+                          constraints.maxWidth < AppSpacing.compactBreakpoint
+                              ? 1
+                              : 4;
                       return GridView.count(
                         crossAxisCount: columns,
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         mainAxisSpacing: AppSpacing.medium,
                         crossAxisSpacing: AppSpacing.medium,
-                        childAspectRatio: columns == 1 ? 3.4 : 1.5,
+                        childAspectRatio: columns == 1
+                            ? AppSpacing.mobileStatCardAspectRatio
+                            : constraints.maxWidth <
+                                    AppSpacing.desktopBreakpoint
+                                ? AppSpacing.tabletStaffStatCardAspectRatio
+                                : 1.5,
                         children: [
                           StatCard(
                             label: AppStrings.received,
@@ -129,7 +167,8 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
                   else
                     LayoutBuilder(
                       builder: (context, constraints) {
-                        if (constraints.maxWidth < AppSpacing.compactBreakpoint) {
+                        if (constraints.maxWidth <
+                            AppSpacing.compactBreakpoint) {
                           return Column(
                             children: [
                               for (final report in reports.take(5))
@@ -137,12 +176,18 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
                                   padding: const EdgeInsets.only(
                                     bottom: AppSpacing.medium,
                                   ),
-                                  child: _QueueCard(report: report),
+                                  child: _QueueCard(
+                                    report: report,
+                                    onTap: () => _openReport(report),
+                                  ),
                                 ),
                             ],
                           );
                         }
-                        return _QueueTable(reports: reports.take(5).toList());
+                        return _QueueTable(
+                          reports: reports.take(5).toList(),
+                          onTap: _openReport,
+                        );
                       },
                     ),
                 ],
@@ -156,9 +201,10 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
 }
 
 class _QueueTable extends StatelessWidget {
-  const _QueueTable({required this.reports});
+  const _QueueTable({required this.reports, required this.onTap});
 
   final List<Report> reports;
+  final ValueChanged<Report> onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -167,6 +213,8 @@ class _QueueTable extends StatelessWidget {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: DataTable(
+          dataRowMinHeight: AppSpacing.reportTableRowMinHeight,
+          dataRowMaxHeight: AppSpacing.reportTableRowMaxHeight,
           columns: const [
             DataColumn(label: Text(AppStrings.reference)),
             DataColumn(label: Text(AppStrings.description)),
@@ -179,7 +227,10 @@ class _QueueTable extends StatelessWidget {
             for (final report in reports)
               DataRow(
                 cells: [
-                  DataCell(Text(report.referenceNumber)),
+                  DataCell(
+                    Text(report.referenceNumber),
+                    onTap: () => onTap(report),
+                  ),
                   DataCell(
                     SizedBox(
                       width: AppSpacing.queueDescriptionWidth,
@@ -201,7 +252,8 @@ class _QueueTable extends StatelessWidget {
                       ),
                     ),
                   ),
-                  DataCell(Text(report.predictedCategory ?? AppStrings.categoryPending)),
+                  DataCell(Text(
+                      report.predictedCategory ?? AppStrings.categoryPending)),
                   DataCell(Text(_confidenceLabel(report))),
                   DataCell(StatusBadge(label: report.status)),
                   DataCell(Text(formatDate(report.createdAt))),
@@ -215,46 +267,55 @@ class _QueueTable extends StatelessWidget {
 }
 
 class _QueueCard extends StatelessWidget {
-  const _QueueCard({required this.report});
+  const _QueueCard({required this.report, required this.onTap});
 
   final Report report;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.medium),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(report.referenceNumber, style: AppTextStyles.cardTitle),
-                ),
-                StatusBadge(label: report.status),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.small),
-            Text(report.description, style: AppTextStyles.body),
-            const SizedBox(height: AppSpacing.medium),
-            Wrap(
-              spacing: AppSpacing.medium,
-              runSpacing: AppSpacing.small,
-              children: [
-                Text(
-                  report.predictedCategory ?? AppStrings.categoryPending,
-                  style: AppTextStyles.secondary,
-                ),
-                Text(_confidenceLabel(report), style: AppTextStyles.secondary),
-                Text(formatDate(report.createdAt), style: AppTextStyles.secondary),
-              ],
-            ),
-            if (report.needsManualReview) ...[
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.medium),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(report.referenceNumber,
+                        style: AppTextStyles.cardTitle),
+                  ),
+                  StatusBadge(label: report.status),
+                ],
+              ),
               const SizedBox(height: AppSpacing.small),
-              const Text(AppStrings.needsReview, style: AppTextStyles.eyebrow),
+              Text(report.description, style: AppTextStyles.body),
+              const SizedBox(height: AppSpacing.medium),
+              Wrap(
+                spacing: AppSpacing.medium,
+                runSpacing: AppSpacing.small,
+                children: [
+                  Text(
+                    report.predictedCategory ?? AppStrings.categoryPending,
+                    style: AppTextStyles.secondary,
+                  ),
+                  Text(_confidenceLabel(report),
+                      style: AppTextStyles.secondary),
+                  Text(formatDate(report.createdAt),
+                      style: AppTextStyles.secondary),
+                ],
+              ),
+              if (report.needsManualReview) ...[
+                const SizedBox(height: AppSpacing.small),
+                const Text(AppStrings.needsReview,
+                    style: AppTextStyles.eyebrow),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -297,13 +358,20 @@ class _EmptyQueue extends StatelessWidget {
 }
 
 class _QueueError extends StatelessWidget {
-  const _QueueError();
+  const _QueueError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.all(AppSpacing.large),
-      child: Text(AppStrings.loadReportsError, style: AppTextStyles.body),
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.large),
+      child: StatusMessage(
+        text: message,
+        kind: MessageKind.error,
+        onRetry: onRetry,
+      ),
     );
   }
 }

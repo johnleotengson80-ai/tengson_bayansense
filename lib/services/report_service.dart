@@ -1,21 +1,7 @@
-import '../models/report.dart';
-import '../models/user_account.dart';
+import 'bayan_sense_service.dart';
+import 'mock_bayan_sense_service.dart';
 
-abstract interface class ReportService {
-  Future<List<Report>> reportsForResident(UserAccount resident);
-  Future<List<Report>> reportsForDepartment(String department);
-  Future<List<Report>> allReports();
-}
+abstract interface class ReportService implements BayanSenseService {}
 
-class EmptyReportService implements ReportService {
-  @override
-  Future<List<Report>> reportsForResident(UserAccount resident) async =>
-      const <Report>[];
-
-  @override
-  Future<List<Report>> reportsForDepartment(String department) async =>
-      const <Report>[];
-
-  @override
-  Future<List<Report>> allReports() async => const <Report>[];
-}
+class EmptyReportService extends MockBayanSenseService
+    implements ReportService {}

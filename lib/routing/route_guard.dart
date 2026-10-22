@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 
 import '../screens/home_screen.dart';
+import '../config.dart';
 import '../state/auth_state.dart';
 import '../widgets/loading_screen.dart';
 import 'routes.dart';
@@ -38,13 +39,14 @@ class _RouteGuardState extends State<RouteGuard> {
     _redirecting = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      Navigator.of(context).pushNamedAndRemoveUntil(routeName, (route) => false);
+      Navigator.of(context)
+          .pushNamedAndRemoveUntil(routeName, (route) => false);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (kDebugMode) return widget.child;
+    if (kDebugMode && AppConfig.useMock) return widget.child;
 
     final auth = context.watch<AuthState>();
 
@@ -93,7 +95,8 @@ class _RootRedirectState extends State<RootRedirect> {
         final target = Routes.homeFor(auth.role!);
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
-          Navigator.of(context).pushNamedAndRemoveUntil(target, (route) => false);
+          Navigator.of(context)
+              .pushNamedAndRemoveUntil(target, (route) => false);
         });
       } else {
         return const HomeScreen();

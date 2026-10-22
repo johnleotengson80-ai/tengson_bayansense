@@ -24,17 +24,27 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
-const String getReportJson = r'''{"report_id":1,"resident_id":1,"description":"Baha sa kalsada, binaha ang buong purok kagabi. Wala nang daan sa Niño — ’di na makalusot ang mga bata.","image_url":null,"latitude":null,"longitude":null,"predicted_category":"Flooding","confidence_score":0.75,"assigned_department":"Barangay Disaster Risk Reduction and Management (BDRRM)","needs_manual_review":false,"status":"Received","created_at":"2026-10-10T14:26:39.331755","updated_at":"2026-10-10T14:26:39.331755"}''';
-const String listReportsJson = r'''[{"report_id":3,"resident_id":1,"description":"Napakaingay ng kapitbahay namin tuwing gabi","image_url":null,"latitude":null,"longitude":null,"predicted_category":null,"confidence_score":null,"assigned_department":"Barangay Council","needs_manual_review":true,"status":"Received","created_at":"2026-10-10T14:26:39.370718","updated_at":"2026-10-10T14:26:39.370718"},{"report_id":2,"resident_id":1,"description":"Kailangan ng doktor ang anak ko, may sakit siya","image_url":null,"latitude":null,"longitude":null,"predicted_category":"Out of Scope","confidence_score":0.9,"assigned_department":null,"needs_manual_review":false,"status":"Received","created_at":"2026-10-10T14:26:39.356862","updated_at":"2026-10-10T14:26:39.356862"},{"report_id":1,"resident_id":1,"description":"Baha sa kalsada, binaha ang buong purok kagabi. Wala nang daan sa Niño — ’di na makalusot ang mga bata.","image_url":null,"latitude":null,"longitude":null,"predicted_category":"Flooding","confidence_score":0.75,"assigned_department":"Barangay Disaster Risk Reduction and Management (BDRRM)","needs_manual_review":false,"status":"Received","created_at":"2026-10-10T14:26:39.331755","updated_at":"2026-10-10T14:26:39.331755"}]''';
-const String createReportJson = r'''{"report_id":1,"predicted_category":"Flooding","assigned_department":"Barangay Disaster Risk Reduction and Management (BDRRM)","confidence_score":0.75,"needs_manual_review":false,"status":"Received"}''';
-const String createOutOfScopeJson = r'''{"report_id":2,"predicted_category":"Out of Scope","assigned_department":null,"confidence_score":0.9,"needs_manual_review":false,"status":"Received"}''';
-const String createUnclassifiedJson = r'''{"report_id":3,"predicted_category":null,"assigned_department":"Barangay Council","confidence_score":null,"needs_manual_review":true,"status":"Received"}''';
-const String loginJson = r'''{"id":1,"role":"resident","token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwicm9sZSI6InJlc2lkZW50IiwiZXhwIjoxNzkxNjg1NTk5fQ.kpXnQJ6ur8ZXjyxi4YAnDYy2fyh7F_I2Vuk7Xx9yQhw"}''';
+const String getReportJson =
+    r'''{"report_id":1,"resident_id":1,"description":"Baha sa kalsada, binaha ang buong purok kagabi. Wala nang daan sa Niño — ’di na makalusot ang mga bata.","image_url":null,"latitude":null,"longitude":null,"predicted_category":"Flooding","confidence_score":0.75,"assigned_department":"Barangay Disaster Risk Reduction and Management (BDRRM)","needs_manual_review":false,"status":"Received","created_at":"2026-10-10T14:26:39.331755","updated_at":"2026-10-10T14:26:39.331755"}''';
+const String listReportsJson =
+    r'''[{"report_id":3,"resident_id":1,"description":"Napakaingay ng kapitbahay namin tuwing gabi","image_url":null,"latitude":null,"longitude":null,"predicted_category":null,"confidence_score":null,"assigned_department":"Barangay Council","needs_manual_review":true,"status":"Received","created_at":"2026-10-10T14:26:39.370718","updated_at":"2026-10-10T14:26:39.370718"},{"report_id":2,"resident_id":1,"description":"Kailangan ng doktor ang anak ko, may sakit siya","image_url":null,"latitude":null,"longitude":null,"predicted_category":"Out of Scope","confidence_score":0.9,"assigned_department":null,"needs_manual_review":false,"status":"Received","created_at":"2026-10-10T14:26:39.356862","updated_at":"2026-10-10T14:26:39.356862"},{"report_id":1,"resident_id":1,"description":"Baha sa kalsada, binaha ang buong purok kagabi. Wala nang daan sa Niño — ’di na makalusot ang mga bata.","image_url":null,"latitude":null,"longitude":null,"predicted_category":"Flooding","confidence_score":0.75,"assigned_department":"Barangay Disaster Risk Reduction and Management (BDRRM)","needs_manual_review":false,"status":"Received","created_at":"2026-10-10T14:26:39.331755","updated_at":"2026-10-10T14:26:39.331755"}]''';
+const String createReportJson =
+    r'''{"report_id":1,"predicted_category":"Flooding","assigned_department":"Barangay Disaster Risk Reduction and Management (BDRRM)","confidence_score":0.75,"needs_manual_review":false,"status":"Received"}''';
+const String createOutOfScopeJson =
+    r'''{"report_id":2,"predicted_category":"Out of Scope","assigned_department":null,"confidence_score":0.9,"needs_manual_review":false,"status":"Received"}''';
+const String createUnclassifiedJson =
+    r'''{"report_id":3,"predicted_category":null,"assigned_department":"Barangay Council","confidence_score":null,"needs_manual_review":true,"status":"Received"}''';
+const String loginJson =
+    r'''{"id":1,"role":"resident","token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwicm9sZSI6InJlc2lkZW50IiwiZXhwIjoxNzkxNjg1NTk5fQ.kpXnQJ6ur8ZXjyxi4YAnDYy2fyh7F_I2Vuk7Xx9yQhw"}''';
 const String registerJson = r'''{"resident_id":1}''';
-const String invalidCredentialsJson = r'''{"error":{"code":"INVALID_CREDENTIALS","message":"Incorrect email or password","details":null}}''';
-const String descriptionTooShortJson = r'''{"error":{"code":"DESCRIPTION_TOO_SHORT","message":"Some fields are invalid","details":{"description":"String should have at least 10 characters"}}}''';
-const String unauthenticatedJson = r'''{"error":{"code":"AUTHENTICATION_REQUIRED","message":"A valid authentication token is required","details":null}}''';
-const String duplicateEmailJson = r'''{"error":{"code":"EMAIL_ALREADY_REGISTERED","message":"An account with this email already exists","details":null}}''';
+const String invalidCredentialsJson =
+    r'''{"error":{"code":"INVALID_CREDENTIALS","message":"Incorrect email or password","details":null}}''';
+const String descriptionTooShortJson =
+    r'''{"error":{"code":"DESCRIPTION_TOO_SHORT","message":"Some fields are invalid","details":{"description":"String should have at least 10 characters"}}}''';
+const String unauthenticatedJson =
+    r'''{"error":{"code":"AUTHENTICATION_REQUIRED","message":"A valid authentication token is required","details":null}}''';
+const String duplicateEmailJson =
+    r'''{"error":{"code":"EMAIL_ALREADY_REGISTERED","message":"An account with this email already exists","details":null}}''';
 
 class InMemoryTokenStore implements TokenStore {
   Session? saved;
@@ -69,11 +79,13 @@ Matcher apiError(String code) =>
 void main() {
   group('models parse the real server responses', () {
     test('a full report', () {
-      final report = Report.fromJson(jsonDecode(getReportJson) as Map<String, dynamic>);
+      final report =
+          Report.fromJson(jsonDecode(getReportJson) as Map<String, dynamic>);
       expect(report.reportId, 1);
       expect(report.predictedCategory, 'Flooding');
       expect(report.confidenceScore, 0.75);
-      expect(report.assignedDepartment, startsWith('Barangay Disaster Risk Reduction'));
+      expect(report.assignedDepartment,
+          startsWith('Barangay Disaster Risk Reduction'));
       expect(report.needsManualReview, isFalse);
       expect(report.status, 'Received');
       expect(report.imageUrl, isNull);
@@ -109,17 +121,19 @@ void main() {
     });
 
     test('submission results: confident, out of scope, unclassified', () {
-      final ok = SubmissionResult.fromJson(jsonDecode(createReportJson) as Map<String, dynamic>);
+      final ok = SubmissionResult.fromJson(
+          jsonDecode(createReportJson) as Map<String, dynamic>);
       expect(ok.predictedCategory, 'Flooding');
       expect(ok.needsManualReview, isFalse);
       expect(ok.isOutOfScope, isFalse);
 
-      final out = SubmissionResult.fromJson(jsonDecode(createOutOfScopeJson) as Map<String, dynamic>);
+      final out = SubmissionResult.fromJson(
+          jsonDecode(createOutOfScopeJson) as Map<String, dynamic>);
       expect(out.isOutOfScope, isTrue);
       expect(out.assignedDepartment, isNull);
 
-      final unclassified =
-          SubmissionResult.fromJson(jsonDecode(createUnclassifiedJson) as Map<String, dynamic>);
+      final unclassified = SubmissionResult.fromJson(
+          jsonDecode(createUnclassifiedJson) as Map<String, dynamic>);
       expect(unclassified.predictedCategory, isNull);
       expect(unclassified.confidenceScore, isNull);
       expect(unclassified.needsManualReview, isTrue);
@@ -127,37 +141,47 @@ void main() {
     });
 
     test('a login session', () {
-      final session = Session.fromJson(jsonDecode(loginJson) as Map<String, dynamic>);
+      final session =
+          Session.fromJson(jsonDecode(loginJson) as Map<String, dynamic>);
       expect(session.role, 'resident');
       expect(session.token, isNotEmpty);
     });
   });
 
   group('ApiClient requests', () {
-    test('login: right URL, JSON body, no Authorization header, trailing slash handled', () async {
+    test(
+        'login: right URL, JSON body, no Authorization header, trailing slash handled',
+        () async {
       http.Request? seen;
       final api = clientWith((request) async {
         seen = request;
         return respond(loginJson);
       });
       api.token = 'old-token'; // must NOT be sent to the login endpoint
-      final session = await api.login(email: 'maria@bayansense.ph', password: 'Resident-pass-1');
+      final session = await api.login(
+          email: 'maria@bayansense.ph', password: 'Resident-pass-1');
 
       expect(session.role, 'resident');
       expect(seen!.method, 'POST');
       expect(seen!.url.toString(), 'http://api.test/auth/login');
       expect(seen!.headers.containsKey('Authorization'), isFalse);
       expect(seen!.headers['Content-Type'], contains('application/json'));
-      expect(jsonDecode(seen!.body), {'email': 'maria@bayansense.ph', 'password': 'Resident-pass-1'});
+      expect(jsonDecode(seen!.body),
+          {'email': 'maria@bayansense.ph', 'password': 'Resident-pass-1'});
     });
 
-    test('register sends only name, email and password (never a role) and returns the id', () async {
+    test(
+        'register sends only name, email and password (never a role) and returns the id',
+        () async {
       http.Request? seen;
       final api = clientWith((request) async {
         seen = request;
         return respond(registerJson, 201);
       });
-      final id = await api.register(fullName: 'Maria Santos', email: 'maria@bayansense.ph', password: 'Resident-pass-1');
+      final id = await api.register(
+          fullName: 'Maria Santos',
+          email: 'maria@bayansense.ph',
+          password: 'Resident-pass-1');
 
       expect(id, 1);
       expect(seen!.url.path, '/auth/register');
@@ -183,6 +207,23 @@ void main() {
       expect(seen!.headers['Authorization'], 'Bearer abc123');
     });
 
+    test('listReports sends supported filters as query parameters', () async {
+      http.Request? seen;
+      final api = clientWith((request) async {
+        seen = request;
+        return respond('[]');
+      });
+      api.token = 't';
+
+      await api.listReports(departmentId: 2, status: 'In Progress');
+
+      expect(seen!.url.path, '/reports');
+      expect(seen!.url.queryParameters, {
+        'department_id': '2',
+        'status': 'In Progress',
+      });
+    });
+
     test('createReport posts the description and parses the result', () async {
       http.Request? seen;
       final api = clientWith((request) async {
@@ -190,11 +231,90 @@ void main() {
         return respond(createReportJson, 201);
       });
       api.token = 't';
-      final result = await api.createReport(description: 'Baha sa kalsada, binaha ang buong purok kagabi');
+      final result = await api.createReport(
+          description: 'Baha sa kalsada, binaha ang buong purok kagabi');
 
       expect(result.predictedCategory, 'Flooding');
       expect(seen!.url.path, '/reports');
-      expect(jsonDecode(seen!.body), {'description': 'Baha sa kalsada, binaha ang buong purok kagabi'});
+      expect(jsonDecode(seen!.body),
+          {'description': 'Baha sa kalsada, binaha ang buong purok kagabi'});
+    });
+
+    test('createReport includes only optional values that were provided',
+        () async {
+      http.Request? seen;
+      final api = clientWith((request) async {
+        seen = request;
+        return respond(createReportJson, 201);
+      });
+      api.token = 't';
+
+      await api.createReport(
+        description: 'Flooding near the school',
+        latitude: 8.1,
+      );
+
+      expect(jsonDecode(seen!.body), {
+        'description': 'Flooding near the school',
+        'latitude': 8.1,
+      });
+    });
+
+    test('updateStatus sends the exact status and omits an unwritten note',
+        () async {
+      final requests = <http.Request>[];
+      final api = clientWith((request) async {
+        requests.add(request);
+        if (request.method == 'PATCH') {
+          return respond(
+            '{"report_id":1,"status":"Resolved","updated_at":"2026-10-10T14:26:39"}',
+          );
+        }
+        return respond(
+          getReportJson.replaceFirst(
+              '"status":"Received"', '"status":"Resolved"'),
+        );
+      });
+      api.token = 't';
+
+      final report = await api.updateStatus(
+        reportId: 1,
+        status: 'Resolved',
+      );
+
+      expect(requests.first.method, 'PATCH');
+      expect(requests.first.url.path, '/reports/1/status');
+      expect(jsonDecode(requests.first.body), {'status': 'Resolved'});
+      expect(requests.last.method, 'GET');
+      expect(report.status, 'Resolved');
+    });
+
+    test('createPersonnel never sends a role field', () async {
+      http.Request? seen;
+      final api = clientWith((request) async {
+        seen = request;
+        return respond(
+          '{"personnel_id":7,"department_id":2,"role":"Staff"}',
+          201,
+        );
+      });
+      api.token = 't';
+
+      final id = await api.createPersonnel(
+        fullName: 'Test Staff',
+        email: 'staff@example.com',
+        password: 'password123',
+        departmentId: 2,
+      );
+
+      expect(id, 7);
+      expect(seen!.url.path, '/admin/personnel');
+      expect(jsonDecode(seen!.body), {
+        'full_name': 'Test Staff',
+        'email': 'staff@example.com',
+        'password': 'password123',
+        'department_id': 2,
+      });
     });
 
     test('getReport requests /reports/{id}', () async {
@@ -210,7 +330,9 @@ void main() {
       expect(report.reportId, 1);
     });
 
-    test('non-ASCII text is read correctly even though the response has no charset', () async {
+    test(
+        'non-ASCII text is read correctly even though the response has no charset',
+        () async {
       final api = clientWith((request) async => respond(getReportJson));
       api.token = 't';
       final report = await api.getReport(1);
@@ -230,27 +352,34 @@ void main() {
   });
 
   group('ApiClient errors', () {
-    test('wrong password: INVALID_CREDENTIALS, and it does NOT count as an expired session', () async {
+    test(
+        'wrong password: INVALID_CREDENTIALS, and it does NOT count as an expired session',
+        () async {
       var expired = 0;
-      final api = clientWith((request) async => respond(invalidCredentialsJson, 401));
+      final api =
+          clientWith((request) async => respond(invalidCredentialsJson, 401));
       api.onUnauthorized = () => expired++;
 
-      await expectLater(api.login(email: 'a@b.ph', password: 'wrongwrong'), throwsA(apiError('INVALID_CREDENTIALS')));
+      await expectLater(api.login(email: 'a@b.ph', password: 'wrongwrong'),
+          throwsA(apiError('INVALID_CREDENTIALS')));
       expect(expired, 0);
     });
 
     test('401 on an authenticated call fires onUnauthorized once', () async {
       var expired = 0;
-      final api = clientWith((request) async => respond(unauthenticatedJson, 401));
+      final api =
+          clientWith((request) async => respond(unauthenticatedJson, 401));
       api.token = 'stale';
       api.onUnauthorized = () => expired++;
 
-      await expectLater(api.listMyReports(), throwsA(apiError('AUTHENTICATION_REQUIRED')));
+      await expectLater(
+          api.listMyReports(), throwsA(apiError('AUTHENTICATION_REQUIRED')));
       expect(expired, 1);
     });
 
     test('validation error keeps its code, status and details', () async {
-      final api = clientWith((request) async => respond(descriptionTooShortJson, 422));
+      final api =
+          clientWith((request) async => respond(descriptionTooShortJson, 422));
       api.token = 't';
       await expectLater(
         api.createReport(description: 'too short'),
@@ -262,41 +391,57 @@ void main() {
     });
 
     test('duplicate email on register', () async {
-      final api = clientWith((request) async => respond(duplicateEmailJson, 409));
+      final api =
+          clientWith((request) async => respond(duplicateEmailJson, 409));
       await expectLater(
-        api.register(fullName: 'M', email: 'maria@bayansense.ph', password: 'Resident-pass-1'),
+        api.register(
+            fullName: 'M',
+            email: 'maria@bayansense.ph',
+            password: 'Resident-pass-1'),
         throwsA(apiError('EMAIL_ALREADY_REGISTERED')),
       );
     });
 
     test('no connection becomes a network error', () async {
-      final api = clientWith((request) async => throw http.ClientException('connection refused'));
+      final api = clientWith(
+          (request) async => throw http.ClientException('connection refused'));
       api.token = 't';
       await expectLater(
         api.listMyReports(),
-        throwsA(isA<ApiException>().having((e) => e.isNetwork, 'isNetwork', isTrue)),
+        throwsA(isA<ApiException>()
+            .having((e) => e.isNetwork, 'isNetwork', isTrue)),
       );
     });
 
-    test('a successful reply that is not JSON is reported as an unexpected response', () async {
-      final api = clientWith((request) async => respond('<html>proxy error</html>'));
+    test(
+        'a successful reply that is not JSON is reported as an unexpected response',
+        () async {
+      final api =
+          clientWith((request) async => respond('<html>proxy error</html>'));
       api.token = 't';
-      await expectLater(api.getReport(1), throwsA(apiError(ApiException.invalidResponseCode)));
+      await expectLater(api.getReport(1),
+          throwsA(apiError(ApiException.invalidResponseCode)));
     });
 
-    test('JSON of the wrong shape is reported as an unexpected response', () async {
+    test('JSON of the wrong shape is reported as an unexpected response',
+        () async {
       final api = clientWith((request) async => respond('[1, 2, 3]'));
       api.token = 't';
-      await expectLater(api.getReport(1), throwsA(apiError(ApiException.invalidResponseCode)));
+      await expectLater(api.getReport(1),
+          throwsA(apiError(ApiException.invalidResponseCode)));
     });
 
-    test('a report with a missing field is reported as an unexpected response', () async {
+    test('a report with a missing field is reported as an unexpected response',
+        () async {
       final api = clientWith((request) async => respond('{"report_id": 1}'));
       api.token = 't';
-      await expectLater(api.getReport(1), throwsA(apiError(ApiException.invalidResponseCode)));
+      await expectLater(api.getReport(1),
+          throwsA(apiError(ApiException.invalidResponseCode)));
     });
 
-    test('a server error without our error format still gives a clean exception', () async {
+    test(
+        'a server error without our error format still gives a clean exception',
+        () async {
       final api = clientWith((request) async => respond('Bad gateway', 502));
       api.token = 't';
       await expectLater(
@@ -309,10 +454,12 @@ void main() {
   });
 
   group('AuthState', () {
-    AuthState authWith(Future<http.Response> Function(http.Request) handler, InMemoryTokenStore store) =>
+    AuthState authWith(Future<http.Response> Function(http.Request) handler,
+            InMemoryTokenStore store) =>
         AuthState(api: clientWith(handler), store: store);
 
-    test('starts in "restoring" and finishes signed out when nothing is saved', () async {
+    test('starts in "restoring" and finishes signed out when nothing is saved',
+        () async {
       final auth = authWith((r) async => respond('{}'), InMemoryTokenStore());
       expect(auth.restoring, isTrue);
       await auth.restore();
@@ -320,8 +467,10 @@ void main() {
       expect(auth.isAuthenticated, isFalse);
     });
 
-    test('restores a saved session and gives the token to the API client', () async {
-      final store = InMemoryTokenStore()..saved = const Session(id: 7, role: 'resident', token: 'saved-token');
+    test('restores a saved session and gives the token to the API client',
+        () async {
+      final store = InMemoryTokenStore()
+        ..saved = const Session(id: 7, role: 'resident', token: 'saved-token');
       http.Request? seen;
       final api = clientWith((request) async {
         seen = request;
@@ -336,7 +485,8 @@ void main() {
       expect(seen!.headers['Authorization'], 'Bearer saved-token');
     });
 
-    test('login success: signs in, remembers the session, notifies listeners', () async {
+    test('login success: signs in, remembers the session, notifies listeners',
+        () async {
       final store = InMemoryTokenStore();
       final auth = authWith((r) async => respond(loginJson), store);
       var notifications = 0;
@@ -353,15 +503,18 @@ void main() {
       expect(notifications, greaterThan(0));
     });
 
-    test('login failure shows the Activity 6 message and stays signed out', () async {
+    test('login failure shows the Activity 6 message and stays signed out',
+        () async {
       final store = InMemoryTokenStore();
-      final auth = authWith((r) async => respond(invalidCredentialsJson, 401), store);
+      final auth =
+          authWith((r) async => respond(invalidCredentialsJson, 401), store);
 
       final ok = await auth.login('maria@bayansense.ph', 'wrong-password');
 
       expect(ok, isFalse);
       expect(auth.isAuthenticated, isFalse);
-      expect(auth.errorMessage, 'Login failed. Please check your credentials and try again.');
+      expect(auth.errorMessage,
+          'Login failed. Please check your credentials and try again.');
       expect(store.saved, isNull);
     });
 
@@ -371,26 +524,38 @@ void main() {
         return respond(loginJson);
       }, InMemoryTokenStore());
 
-      final ok = await auth.register(fullName: 'Maria Santos', email: 'maria@bayansense.ph', password: 'Resident-pass-1');
+      final ok = await auth.register(
+          fullName: 'Maria Santos',
+          email: 'maria@bayansense.ph',
+          password: 'Resident-pass-1');
 
       expect(ok, isTrue);
       expect(auth.role, 'resident');
     });
 
     test('register with a taken email explains it', () async {
-      final auth = authWith((r) async => respond(duplicateEmailJson, 409), InMemoryTokenStore());
-      final ok = await auth.register(fullName: 'M', email: 'maria@bayansense.ph', password: 'Resident-pass-1');
+      final auth = authWith(
+          (r) async => respond(duplicateEmailJson, 409), InMemoryTokenStore());
+      final ok = await auth.register(
+          fullName: 'M',
+          email: 'maria@bayansense.ph',
+          password: 'Resident-pass-1');
       expect(ok, isFalse);
       expect(auth.errorMessage, contains('already exists'));
     });
 
-    test('if the account is created but the follow-up login fails, the user is told to log in', () async {
+    test(
+        'if the account is created but the follow-up login fails, the user is told to log in',
+        () async {
       final auth = authWith((r) async {
         if (r.url.path == '/auth/register') return respond(registerJson, 201);
         throw http.ClientException('offline');
       }, InMemoryTokenStore());
 
-      final ok = await auth.register(fullName: 'M', email: 'maria@bayansense.ph', password: 'Resident-pass-1');
+      final ok = await auth.register(
+          fullName: 'M',
+          email: 'maria@bayansense.ph',
+          password: 'Resident-pass-1');
 
       expect(ok, isFalse);
       expect(auth.errorMessage, 'Your account was created. Please log in.');
@@ -406,7 +571,9 @@ void main() {
       expect(store.saved, isNull);
     });
 
-    test('a 401 on a later request signs the user out and flags the expired session', () async {
+    test(
+        'a 401 on a later request signs the user out and flags the expired session',
+        () async {
       final store = InMemoryTokenStore();
       final api = clientWith((r) async {
         if (r.url.path == '/auth/login') return respond(loginJson);
@@ -428,7 +595,8 @@ void main() {
   });
 
   group('ReportsState', () {
-    ReportsState stateWith(Future<http.Response> Function(http.Request) handler) {
+    ReportsState stateWith(
+        Future<http.Response> Function(http.Request) handler) {
       final api = clientWith(handler);
       api.token = 't';
       return ReportsState(api);
@@ -445,11 +613,17 @@ void main() {
       expect(state.error, isNull);
     });
 
-    test('load failure keeps a readable message and does not claim the list loaded', () async {
-      final state = stateWith((r) async => throw http.ClientException('offline'));
+    test(
+        'load failure keeps a readable message and does not claim the list loaded',
+        () async {
+      final state =
+          stateWith((r) async => throw http.ClientException('offline'));
       await state.load();
 
-      expect(state.error, contains("Can't reach the server"));
+      expect(
+        state.error,
+        'Cannot reach the server. Check that the backend is running.',
+      );
       expect(state.loadedOnce, isFalse);
       expect(state.items, isEmpty);
     });
@@ -462,15 +636,18 @@ void main() {
       await state.load();
       expect(state.loadedOnce, isTrue);
 
-      final result = await state.submit('  Baha sa kalsada, binaha ang buong purok kagabi  ');
+      final result = await state
+          .submit('  Baha sa kalsada, binaha ang buong purok kagabi  ');
 
       expect(result.predictedCategory, 'Flooding');
       expect(state.loadedOnce, isFalse);
     });
 
     test('submit passes server errors to the caller', () async {
-      final state = stateWith((r) async => respond(descriptionTooShortJson, 422));
-      await expectLater(state.submit('too short'), throwsA(apiError('DESCRIPTION_TOO_SHORT')));
+      final state =
+          stateWith((r) async => respond(descriptionTooShortJson, 422));
+      await expectLater(state.submit('too short'),
+          throwsA(apiError('DESCRIPTION_TOO_SHORT')));
     });
 
     test('reset forgets everything', () async {
@@ -493,25 +670,35 @@ void main() {
   group('error messages', () {
     test('network problems are explained the same way everywhere', () {
       final e = ApiException.network();
-      expect(messageForLogin(e), contains("Can't reach the server"));
-      expect(messageForRegister(e), contains("Can't reach the server"));
-      expect(messageForSubmit(e), contains("Can't reach the server"));
-      expect(messageForLoadList(e), contains("Can't reach the server"));
-      expect(messageForLoadReport(e), contains("Can't reach the server"));
+      const networkMessage =
+          'Cannot reach the server. Check that the backend is running.';
+      expect(messageForLogin(e), networkMessage);
+      expect(messageForRegister(e), networkMessage);
+      expect(messageForSubmit(e), networkMessage);
+      expect(messageForLoadList(e), networkMessage);
+      expect(messageForLoadReport(e), networkMessage);
     });
 
     test('submit and load messages match Activity 6', () {
-      const tooShort = ApiException(code: 'DESCRIPTION_TOO_SHORT', message: 'x', statusCode: 422);
-      const other = ApiException(code: 'INTERNAL_ERROR', message: 'x', statusCode: 500);
-      expect(messageForSubmit(tooShort), 'Please describe the concern in more detail.');
-      expect(messageForSubmit(other), 'Report could not be submitted. Please try again.');
-      expect(messageForLoadList(other), 'Unable to load your reports. Try again.');
+      const tooShort = ApiException(
+          code: 'DESCRIPTION_TOO_SHORT', message: 'x', statusCode: 422);
+      const other =
+          ApiException(code: 'INTERNAL_ERROR', message: 'x', statusCode: 500);
+      expect(messageForSubmit(tooShort),
+          'Please describe the concern in more detail.');
+      expect(messageForSubmit(other),
+          'Report could not be submitted. Please try again.');
+      expect(
+          messageForLoadList(other), 'Unable to load your reports. Try again.');
     });
 
-    test('someone else\'s report looks the same as a missing one', () {
-      const forbidden = ApiException(code: 'ACCESS_NOT_ALLOWED', message: 'x', statusCode: 403);
-      const missing = ApiException(code: 'NOT_FOUND', message: 'x', statusCode: 404);
-      expect(messageForLoadReport(forbidden), 'This report could not be found.');
+    test('forbidden access is clear and missing reports remain not found', () {
+      const forbidden = ApiException(
+          code: 'ACCESS_NOT_ALLOWED', message: 'x', statusCode: 403);
+      const missing =
+          ApiException(code: 'NOT_FOUND', message: 'x', statusCode: 404);
+      expect(messageForLoadReport(forbidden),
+          'You do not have access to this page.');
       expect(messageForLoadReport(missing), 'This report could not be found.');
     });
   });
@@ -541,8 +728,11 @@ void main() {
       expect(validateFullName('Maria'), isNull);
     });
 
-    test('description needs 10 characters after trimming, counted like the server does', () {
-      expect(validateDescription('123456789'), 'Please describe the concern in more detail.');
+    test(
+        'description needs 10 characters after trimming, counted like the server does',
+        () {
+      expect(validateDescription('123456789'),
+          'Please describe the concern in more detail.');
       expect(validateDescription('1234567890'), isNull);
       expect(validateDescription('   short   '), isNotNull);
       expect(validateDescription(null), isNotNull);
@@ -564,8 +754,10 @@ void main() {
       expect(normalizeRoute(null), '/');
       expect(normalizeRoute(''), '/');
       expect(normalizeRoute('/login/'), '/login');
-      expect(normalizeRoute('/resident/reports/12?ref=x'), '/resident/reports/12');
-      expect(normalizeRoute('/resident/reports/12#top'), '/resident/reports/12');
+      expect(
+          normalizeRoute('/resident/reports/12?ref=x'), '/resident/reports/12');
+      expect(
+          normalizeRoute('/resident/reports/12#top'), '/resident/reports/12');
     });
 
     test('report detail addresses', () {

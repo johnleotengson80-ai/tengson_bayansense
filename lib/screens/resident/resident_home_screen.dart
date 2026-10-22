@@ -6,13 +6,16 @@ import '../../constants/app_strings.dart';
 import '../../constants/app_text_styles.dart';
 import '../../models/report.dart';
 import '../../routing/routes.dart';
-import '../../services/report_service.dart';
+import '../../services/api_exception.dart';
+import '../../services/bayan_sense_service.dart';
+import '../../services/mock_bayan_sense_service.dart';
 import '../../state/auth_state.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/report_card.dart';
 import '../../widgets/responsive_scaffold.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/stat_card.dart';
+import '../../widgets/status_message.dart';
 
 class ResidentHomeScreen extends StatefulWidget {
   const ResidentHomeScreen({super.key});
@@ -40,15 +43,12 @@ class ResidentHomeScreen extends StatefulWidget {
 }
 
 class _ResidentHomeScreenState extends State<ResidentHomeScreen> {
-  late final Future<List<Report>> _reportFuture;
+  late Future<List<Report>> _reportFuture;
 
   @override
   void initState() {
     super.initState();
-    final account = context.read<AuthState>().account;
-    _reportFuture = account == null
-      ? Future<List<Report>>.value(const <Report>[])
-        : context.read<ReportService>().reportsForResident(account);
+    _reportFuture = context.read<BayanSenseService>().listReports();
   }
 
   @override
@@ -83,7 +83,21 @@ class _ResidentHomeScreenState extends State<ResidentHomeScreen> {
                 );
               }
               if (snapshot.hasError) {
-                return const _ReportsError();
+                final error = snapshot.error;
+                final message = error is ApiException
+                    ? error.statusCode == 403
+                        ? AppStrings.accessDenied
+                        : error.message
+                    : error is MockServiceException
+                        ? error.message
+                        : AppStrings.loadReportsError;
+                return _ReportsError(
+                  message: message,
+                  onRetry: () => setState(() {
+                    _reportFuture =
+                        context.read<BayanSenseService>().listReports();
+                  }),
+                );
               }
               final reports = List<Report>.of(snapshot.data ?? const <Report>[])
                 ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -108,7 +122,12 @@ class _ResidentHomeScreenState extends State<ResidentHomeScreen> {
                         physics: const NeverScrollableScrollPhysics(),
                         mainAxisSpacing: AppSpacing.medium,
                         crossAxisSpacing: AppSpacing.medium,
-                        childAspectRatio: columns == 1 ? 3.4 : 1.9,
+                        childAspectRatio: columns == 1
+                            ? AppSpacing.mobileStatCardAspectRatio
+                            : constraints.maxWidth <
+                                    AppSpacing.desktopBreakpoint
+                                ? AppSpacing.tabletStatCardAspectRatio
+                                : 1.9,
                         children: [
                           StatCard(
                             label: AppStrings.totalReports,
@@ -145,8 +164,9 @@ class _ResidentHomeScreenState extends State<ResidentHomeScreen> {
                             const EdgeInsets.only(bottom: AppSpacing.medium),
                         child: ReportCard(
                           report: report,
-                          onTap: () =>
-                              Navigator.of(context).pushNamed(Routes.myReports),
+                          onTap: () => Navigator.of(context).pushNamed(
+                            Routes.reportDetail(report.reportId),
+                          ),
                         ),
                       ),
                 ],
@@ -186,14 +206,21 @@ class _EmptyReports extends StatelessWidget {
 }
 
 class _ReportsError extends StatelessWidget {
-  const _ReportsError();
+  const _ReportsError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
-    return const Card(
+    return Card(
       child: Padding(
-        padding: EdgeInsets.all(AppSpacing.large),
-        child: Text(AppStrings.loadReportsError, style: AppTextStyles.body),
+        padding: const EdgeInsets.all(AppSpacing.large),
+        child: StatusMessage(
+          text: message,
+          kind: MessageKind.error,
+          onRetry: onRetry,
+        ),
       ),
     );
   }

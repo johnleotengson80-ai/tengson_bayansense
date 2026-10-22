@@ -37,8 +37,7 @@ class ResponsiveScaffold extends StatelessWidget {
     required this.role,
     required this.selectedRoute,
     required this.items,
-  })  :
-        child = const _PlaceholderContent();
+  }) : child = const _PlaceholderContent();
 
   final String title;
   final String role;
@@ -59,7 +58,8 @@ class ResponsiveScaffold extends StatelessWidget {
   Future<void> _logout(BuildContext context) async {
     await context.read<AuthState>().logout();
     if (context.mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil(Routes.root, (route) => false);
+      Navigator.of(context)
+          .pushNamedAndRemoveUntil(Routes.root, (route) => false);
     }
   }
 
@@ -72,7 +72,8 @@ class ResponsiveScaffold extends StatelessWidget {
         final wide = constraints.maxWidth >= AppSpacing.desktopBreakpoint;
         final content = Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: AppSpacing.contentMaxWidth),
+            constraints:
+                const BoxConstraints(maxWidth: AppSpacing.contentMaxWidth),
             child: child,
           ),
         );
@@ -102,18 +103,25 @@ class ResponsiveScaffold extends StatelessWidget {
           ),
           body: Row(
             children: [
-              if (wide) _Sidebar(
-                items: items,
-                selectedIndex: _selectedIndex,
-                account: account,
-                onSelect: (item) => _select(context, item),
-                onLogout: () => _logout(context),
-              ),
+              if (wide)
+                _Sidebar(
+                  items: items,
+                  selectedIndex: _selectedIndex,
+                  account: account,
+                  onSelect: (item) => _select(context, item),
+                  onLogout: () => _logout(context),
+                ),
               if (!compact && !wide)
                 NavigationRail(
                   selectedIndex: _selectedIndex,
                   labelType: NavigationRailLabelType.all,
-                  onDestinationSelected: (index) => _select(context, items[index]),
+                  trailing: IconButton(
+                    tooltip: AppStrings.logoutTooltip,
+                    onPressed: () => _logout(context),
+                    icon: const Icon(Icons.logout_outlined),
+                  ),
+                  onDestinationSelected: (index) =>
+                      _select(context, items[index]),
                   destinations: [
                     for (final item in items)
                       NavigationRailDestination(
@@ -138,7 +146,8 @@ class ResponsiveScaffold extends StatelessWidget {
           bottomNavigationBar: compact
               ? NavigationBar(
                   selectedIndex: _selectedIndex,
-                  onDestinationSelected: (index) => _select(context, items[index]),
+                  onDestinationSelected: (index) =>
+                      _select(context, items[index]),
                   destinations: [
                     for (final item in items)
                       NavigationDestination(
@@ -171,58 +180,71 @@ class _Sidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: AppSpacing.sidebarWidth,
-      decoration: const BoxDecoration(
-        color: AppColors.subtleSurface,
-        border: Border(right: BorderSide(color: AppColors.border)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Padding(
-            padding: EdgeInsets.all(AppSpacing.large),
-            child: Text(AppStrings.appName, style: AppTextStyles.sectionTitle),
-          ),
-          for (var index = 0; index < items.length; index++)
+    return Material(
+      color: AppColors.subtleSurface,
+      child: Container(
+        width: AppSpacing.sidebarWidth,
+        decoration: const BoxDecoration(
+          border: Border(right: BorderSide(color: AppColors.border)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(AppSpacing.large),
+              child:
+                  Text(AppStrings.appName, style: AppTextStyles.sectionTitle),
+            ),
+            for (var index = 0; index < items.length; index++)
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: AppSpacing.small),
+                child: Material(
+                  color: Colors.transparent,
+                  child: ListTile(
+                    minTileHeight: AppSpacing.minimumTouchTarget,
+                    selected: index == selectedIndex,
+                    selectedColor: AppColors.primary,
+                    selectedTileColor: AppColors.primaryTint,
+                    leading: Icon(items[index].icon),
+                    title: Text(items[index].label),
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(AppSpacing.cornerRadius),
+                    ),
+                    onTap: () => onSelect(items[index]),
+                  ),
+                ),
+              ),
+            const Spacer(),
+            if (account != null)
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.medium),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(account!.fullName, style: AppTextStyles.cardTitle),
+                    Text(account!.roleLabel, style: AppTextStyles.secondary),
+                  ],
+                ),
+              ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.small),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.small,
+              ),
               child: Material(
                 color: Colors.transparent,
                 child: ListTile(
                   minTileHeight: AppSpacing.minimumTouchTarget,
-                  selected: index == selectedIndex,
-                  selectedColor: AppColors.primary,
-                  selectedTileColor: AppColors.primaryTint,
-                  leading: Icon(items[index].icon),
-                  title: Text(items[index].label),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppSpacing.cornerRadius),
-                  ),
-                  onTap: () => onSelect(items[index]),
+                  leading: const Icon(Icons.logout_outlined),
+                  title: const Text(AppStrings.logout),
+                  onTap: onLogout,
                 ),
               ),
             ),
-          const Spacer(),
-          if (account != null)
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.medium),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(account!.fullName, style: AppTextStyles.cardTitle),
-                  Text(account!.roleLabel, style: AppTextStyles.secondary),
-                ],
-              ),
-            ),
-          ListTile(
-            minTileHeight: AppSpacing.minimumTouchTarget,
-            leading: const Icon(Icons.logout_outlined),
-            title: const Text(AppStrings.logout),
-            onTap: onLogout,
-          ),
-          const SizedBox(height: AppSpacing.small),
-        ],
+            const SizedBox(height: AppSpacing.small),
+          ],
+        ),
       ),
     );
   }

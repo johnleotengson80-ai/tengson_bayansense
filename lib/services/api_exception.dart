@@ -19,7 +19,7 @@ class ApiException implements Exception {
   /// The server could not be reached (offline, DNS, timeout, blocked by CORS, ...).
   factory ApiException.network() => const ApiException(
         code: networkCode,
-        message: "Can't reach the server. Check your internet connection and try again.",
+        message: 'Cannot reach the server. Check that the backend is running.',
       );
 
   factory ApiException.invalidResponse([int? statusCode]) => ApiException(

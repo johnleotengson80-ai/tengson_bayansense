@@ -20,12 +20,17 @@ class StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.medium),
+        padding: EdgeInsets.all(
+          MediaQuery.sizeOf(context).width < AppSpacing.compactBreakpoint
+              ? AppSpacing.small
+              : AppSpacing.medium,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (icon != null) ...[
-              Icon(icon, color: AppColors.primary, size: AppSpacing.statIconSize),
+              Icon(icon,
+                  color: AppColors.primary, size: AppSpacing.statIconSize),
               const SizedBox(height: AppSpacing.small),
             ],
             Text(value, style: AppTextStyles.pageTitle),

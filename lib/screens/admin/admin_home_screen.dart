@@ -8,11 +8,14 @@ import '../../constants/app_text_styles.dart';
 import '../../format.dart';
 import '../../models/report.dart';
 import '../../routing/routes.dart';
-import '../../services/report_service.dart';
+import '../../services/api_exception.dart';
+import '../../services/bayan_sense_service.dart';
+import '../../services/mock_bayan_sense_service.dart';
 import '../../widgets/responsive_scaffold.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/stat_card.dart';
 import '../../widgets/status_badge.dart';
+import '../../widgets/status_message.dart';
 
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
@@ -40,12 +43,42 @@ class AdminHomeScreen extends StatefulWidget {
 }
 
 class _AdminHomeScreenState extends State<AdminHomeScreen> {
-  late final Future<List<Report>> _reportFuture;
+  List<Report> _reports = const <Report>[];
+  bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _reportFuture = context.read<ReportService>().allReports();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final reports = await context.read<BayanSenseService>().listReports();
+      if (!mounted) return;
+      setState(() {
+        _reports = reports;
+        _loading = false;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error =
+            error.statusCode == 403 ? AppStrings.accessDenied : error.message;
+        _loading = false;
+      });
+    } on MockServiceException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = error.message;
+        _loading = false;
+      });
+    }
   }
 
   @override
@@ -55,97 +88,104 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       role: 'admin',
       selectedRoute: Routes.adminHome,
       items: AdminHomeScreen.navigationItems,
-      child: FutureBuilder<List<Report>>(
-        future: _reportFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(AppSpacing.large),
-                child: Text(AppStrings.loadReportsError,
-                    style: AppTextStyles.body),
-              ),
-            );
-          }
-          final reports = List<Report>.of(snapshot.data ?? const <Report>[])
-            ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-          final flagged =
-              reports.where((report) => report.needsManualReview).length;
-          final unrouted =
-              reports.where((report) => report.isOutOfScope).length;
-          return ListView(
-            padding: const EdgeInsets.all(AppSpacing.pagePadding),
-            children: [
-              const Text(AppStrings.adminRole, style: AppTextStyles.pageTitle),
-              const SizedBox(height: AppSpacing.large),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final columns =
-                      constraints.maxWidth < AppSpacing.compactBreakpoint
-                          ? 1
-                          : 4;
-                  return GridView.count(
-                    crossAxisCount: columns,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    mainAxisSpacing: AppSpacing.medium,
-                    crossAxisSpacing: AppSpacing.medium,
-                    childAspectRatio: columns == 1 ? 3.4 : 1.55,
-                    children: [
-                      StatCard(
-                        label: AppStrings.totalReports,
-                        value: '${reports.length}',
-                        icon: Icons.assignment_outlined,
-                      ),
-                      StatCard(
-                        label: AppStrings.flaggedForReview,
-                        value: '$flagged',
-                        icon: Icons.fact_check_outlined,
-                      ),
-                      StatCard(
-                        label: AppStrings.unrouted,
-                        value: '$unrouted',
-                        icon: Icons.route_outlined,
-                      ),
-                      const StatCard(
-                        label: AppStrings.activeStaff,
-                        value: AppStrings.activeStaffValue,
-                        icon: Icons.people_outline,
-                      ),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: AppSpacing.large),
-              FilledButton.icon(
-                onPressed: () =>
-                    Navigator.of(context).pushNamed(Routes.adminStaff),
-                icon: const Icon(Icons.person_add_alt_1_outlined),
-                label: const Text(AppStrings.createStaffAccount),
-              ),
-              const SizedBox(height: AppSpacing.xLarge),
-              _DepartmentBreakdown(reports: reports),
-              const SizedBox(height: AppSpacing.xLarge),
-              SectionHeader(
-                title: AppStrings.recentActivity,
-                actionLabel: AppStrings.viewAll,
-                onAction: () =>
-                    Navigator.of(context).pushNamed(Routes.adminReports),
-              ),
-              if (reports.isEmpty)
-                const _NoActivity()
-              else
-                for (final report in reports.take(5))
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.medium),
-                    child: _ActivityCard(report: report),
+      child: _loading && _reports.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null && _reports.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.large),
+                    child: StatusMessage(
+                      text: _error!,
+                      kind: MessageKind.error,
+                      onRetry: _load,
+                    ),
                   ),
-            ],
-          );
-        },
+                )
+              : _buildDashboard(),
+    );
+  }
+
+  Widget _buildDashboard() {
+    final reports = List<Report>.of(_reports)
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final flagged = reports.where((report) => report.needsManualReview).length;
+    final unrouted =
+        reports.where((report) => report.assignedDepartment == null).length;
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(AppSpacing.pagePadding),
+        children: [
+          if (_error != null) ...[
+            StatusMessage(
+              text: _error!,
+              kind: MessageKind.error,
+              onRetry: _load,
+            ),
+            const SizedBox(height: AppSpacing.medium),
+          ],
+          const Text(AppStrings.adminRole, style: AppTextStyles.pageTitle),
+          const SizedBox(height: AppSpacing.large),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final columns =
+                  constraints.maxWidth < AppSpacing.compactBreakpoint ? 1 : 3;
+              return GridView.count(
+                crossAxisCount: columns,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: AppSpacing.medium,
+                crossAxisSpacing: AppSpacing.medium,
+                childAspectRatio: columns == 1
+                    ? AppSpacing.mobileStatCardAspectRatio
+                    : constraints.maxWidth < AppSpacing.desktopBreakpoint
+                        ? AppSpacing.tabletStatCardAspectRatio
+                        : 1.8,
+                children: [
+                  StatCard(
+                    label: AppStrings.totalReports,
+                    value: '${reports.length}',
+                    icon: Icons.assignment_outlined,
+                  ),
+                  StatCard(
+                    label: AppStrings.flaggedForReview,
+                    value: '$flagged',
+                    icon: Icons.fact_check_outlined,
+                  ),
+                  StatCard(
+                    label: AppStrings.unrouted,
+                    value: '$unrouted',
+                    icon: Icons.route_outlined,
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: AppSpacing.large),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(context).pushNamed(Routes.adminStaff),
+            icon: const Icon(Icons.person_add_alt_1_outlined),
+            label: const Text(AppStrings.createStaffAccount),
+          ),
+          const SizedBox(height: AppSpacing.xLarge),
+          _DepartmentBreakdown(reports: reports),
+          const SizedBox(height: AppSpacing.xLarge),
+          SectionHeader(
+            title: AppStrings.recentActivity,
+            actionLabel: AppStrings.viewAll,
+            onAction: () =>
+                Navigator.of(context).pushNamed(Routes.adminReports),
+          ),
+          if (reports.isEmpty)
+            const _NoActivity()
+          else
+            for (final report in reports.take(5))
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.medium),
+                child: _ActivityCard(report: report),
+              ),
+        ],
       ),
     );
   }
@@ -159,9 +199,9 @@ class _DepartmentBreakdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final counts = <String, int>{
-      for (final department in AppStrings.departments)
-        department: reports
-            .where((report) => report.assignedDepartment == department)
+      for (final department in AppStrings.departmentNames)
+        department.name: reports
+            .where((report) => report.assignedDepartment == department.name)
             .length,
     };
     final maximum =

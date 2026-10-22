@@ -41,7 +41,38 @@ String? validateFullName(String? value) {
 String? validateDescription(String? value) {
   // runes.length counts characters the way the server does (an emoji is 1, not 2).
   if ((value ?? '').trim().runes.length < minDescriptionLength) {
-    return 'Please describe the concern in more detail.';
+    return AppStrings.reportDescriptionRequired;
+  }
+  return null;
+}
+
+String? validateReportLocation(String? value) {
+  if ((value ?? '').trim().isEmpty) return AppStrings.reportLocationRequired;
+  return null;
+}
+
+String? validateLatitude(String? value) {
+  final text = (value ?? '').trim();
+  if (text.isEmpty) return null;
+  final coordinate = double.tryParse(text);
+  if (coordinate == null ||
+      !coordinate.isFinite ||
+      coordinate < -90 ||
+      coordinate > 90) {
+    return AppStrings.latitudeInvalid;
+  }
+  return null;
+}
+
+String? validateLongitude(String? value) {
+  final text = (value ?? '').trim();
+  if (text.isEmpty) return null;
+  final coordinate = double.tryParse(text);
+  if (coordinate == null ||
+      !coordinate.isFinite ||
+      coordinate < -180 ||
+      coordinate > 180) {
+    return AppStrings.longitudeInvalid;
   }
   return null;
 }

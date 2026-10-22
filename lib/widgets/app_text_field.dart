@@ -7,6 +7,7 @@ class AppTextField extends StatelessWidget {
     required this.controller,
     required this.label,
     this.validator,
+    this.serverError,
     this.obscureText = false,
     this.keyboardType,
     this.textInputAction,
@@ -20,6 +21,7 @@ class AppTextField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
   final String? Function(String?)? validator;
+  final String? serverError;
   final bool obscureText;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
@@ -43,6 +45,7 @@ class AppTextField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
+        errorText: serverError,
         suffixIcon: suffixIcon,
         border: const OutlineInputBorder(),
         alignLabelWithHint: (minLines ?? 1) > 1,

@@ -121,6 +121,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             controller: _nameController,
                             label: AppStrings.fullName,
                             validator: validateFullName,
+                            serverError:
+                                auth.errorDetails?['full_name']?.toString(),
                             textInputAction: TextInputAction.next,
                           ),
                           const SizedBox(height: AppSpacing.medium),
@@ -129,6 +131,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           controller: _emailController,
                           label: AppStrings.emailLabel,
                           validator: validateEmail,
+                          serverError:
+                              auth.errorDetails?['email']?.toString(),
                           keyboardType: TextInputType.emailAddress,
                           textInputAction: TextInputAction.next,
                         ),
@@ -138,7 +142,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           label: AppStrings.password,
                           validator: _registerMode
                               ? validateNewPassword
-                              : validateDemoLoginPassword,
+                              : validateLoginPassword,
+                          serverError:
+                              auth.errorDetails?['password']?.toString(),
                           obscureText: _hidePassword,
                           textInputAction: TextInputAction.done,
                           onSubmitted: (_) => _submit(),

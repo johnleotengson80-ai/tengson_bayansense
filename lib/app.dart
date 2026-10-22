@@ -3,23 +3,21 @@ import 'package:provider/provider.dart';
 
 import 'constants/app_strings.dart';
 import 'routing/app_router.dart';
-import 'services/api_client.dart';
-import 'services/report_service.dart';
+import 'services/bayan_sense_service.dart';
 import 'services/token_store.dart';
 import 'state/auth_state.dart';
+import 'state/reports_state.dart';
 import 'theme.dart';
 
 class BayanSenseApp extends StatefulWidget {
   const BayanSenseApp({
     super.key,
-    required this.api,
+    required this.service,
     required this.tokenStore,
-    required this.reportService,
   });
 
-  final ApiClient api;
+  final BayanSenseService service;
   final TokenStore tokenStore;
-  final ReportService reportService;
 
   @override
   State<BayanSenseApp> createState() => _BayanSenseAppState();
@@ -31,7 +29,7 @@ class _BayanSenseAppState extends State<BayanSenseApp> {
   @override
   void initState() {
     super.initState();
-    _auth = AuthState(api: widget.api, store: widget.tokenStore);
+    _auth = AuthState(service: widget.service, store: widget.tokenStore);
     _auth.restore();
   }
 
@@ -46,7 +44,10 @@ class _BayanSenseAppState extends State<BayanSenseApp> {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<AuthState>.value(value: _auth),
-        Provider<ReportService>.value(value: widget.reportService),
+        Provider<BayanSenseService>.value(value: widget.service),
+        ChangeNotifierProvider<ReportsState>(
+          create: (_) => ReportsState(widget.service),
+        ),
       ],
       child: MaterialApp(
         title: AppStrings.appName,

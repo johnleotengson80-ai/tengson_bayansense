@@ -63,7 +63,7 @@ class HomeScreen extends StatelessWidget {
                                   _Hero(
                                     mobile: mobile,
                                     onReport: () =>
-                                        _open(context, Routes.login),
+                                        _open(context, Routes.reportForm),
                                     onLogin: () => _open(context, Routes.login),
                                   ),
                                   if (kDebugMode) ...[

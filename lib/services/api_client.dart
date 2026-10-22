@@ -6,14 +6,17 @@ import '../models/report.dart';
 import '../models/session.dart';
 import '../models/submission_result.dart';
 import 'api_exception.dart';
+import 'bayan_sense_service.dart';
 
 /// All communication with the BayanSense REST API (Activity 7). Screens never build requests themselves.
-class ApiClient {
+class ApiClient implements BayanSenseService {
   ApiClient({
     required String baseUrl,
     http.Client? httpClient,
     this.timeout = const Duration(seconds: 15),
-  })  : _baseUrl = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl,
+  })  : _baseUrl = baseUrl.endsWith('/')
+            ? baseUrl.substring(0, baseUrl.length - 1)
+            : baseUrl,
         _http = httpClient ?? http.Client();
 
   final String _baseUrl;
@@ -21,30 +24,44 @@ class ApiClient {
   final Duration timeout;
 
   /// Sent as "Authorization: Bearer ..." on every request except login and register.
+  @override
   String? token;
 
   /// Called when the server rejects our token (HTTP 401) on an authenticated request.
+  @override
   void Function()? onUnauthorized;
 
   // ---------------- endpoints ----------------
 
   /// EP-02. Returns the new resident's id. Residents only: there is no role field to send.
+  @override
   Future<int> register({
     required String fullName,
     required String email,
     required String password,
+    String? contactNumber,
+    String? barangayZone,
   }) async {
+    final body = <String, dynamic>{
+      'full_name': fullName,
+      'email': email,
+      'password': password,
+    };
+    if (contactNumber != null) body['contact_number'] = contactNumber;
+    if (barangayZone != null) body['barangay_zone'] = barangayZone;
     final json = _asMap(await _request(
       'POST',
       '/auth/register',
-      body: {'full_name': fullName, 'email': email, 'password': password},
+      body: body,
       authenticated: false,
     ));
     return _parse(() => json['resident_id'] as int);
   }
 
   /// EP-01 / CON-03.
-  Future<Session> login({required String email, required String password}) async {
+  @override
+  Future<Session> login(
+      {required String email, required String password}) async {
     final json = _asMap(await _request(
       'POST',
       '/auth/login',
@@ -55,25 +72,77 @@ class ApiClient {
   }
 
   /// EP-03 / CON-01. The server classifies and routes the report in this same request.
-  Future<SubmissionResult> createReport({required String description}) async {
+  @override
+  Future<SubmissionResult> createReport({
+    required String description,
+    String? imageUrl,
+    double? latitude,
+    double? longitude,
+  }) async {
+    final body = <String, dynamic>{'description': description};
+    if (imageUrl != null) body['image_url'] = imageUrl;
+    if (latitude != null) body['latitude'] = latitude;
+    if (longitude != null) body['longitude'] = longitude;
     final json = _asMap(await _request(
       'POST',
       '/reports',
-      body: {'description': description},
+      body: body,
     ));
     return _parse(() => SubmissionResult.fromJson(json));
   }
 
   /// EP-04: the signed-in resident's own reports, newest first.
-  Future<List<Report>> listMyReports() async {
-    final list = _asList(await _request('GET', '/reports'));
-    return _parse(() => list.map((e) => Report.fromJson(e as Map<String, dynamic>)).toList());
+  @override
+  Future<List<Report>> listReports({int? departmentId, String? status}) async {
+    final query = <String, String>{};
+    if (departmentId != null) query['department_id'] = '$departmentId';
+    if (status != null) query['status'] = status;
+    final uri =
+        Uri(path: '/reports', queryParameters: query.isEmpty ? null : query);
+    final list = _asList(await _request('GET', uri.toString()));
+    return _parse(() =>
+        list.map((e) => Report.fromJson(e as Map<String, dynamic>)).toList());
   }
 
+  Future<List<Report>> listMyReports() => listReports();
+
   /// EP-05 / CON-04.
+  @override
   Future<Report> getReport(int reportId) async {
     final json = _asMap(await _request('GET', '/reports/$reportId'));
     return _parse(() => Report.fromJson(json));
+  }
+
+  @override
+  Future<Report> updateStatus({
+    required int reportId,
+    required String status,
+    String? resolutionNote,
+  }) async {
+    final body = <String, dynamic>{'status': status};
+    if (resolutionNote != null) body['resolution_note'] = resolutionNote;
+    await _request('PATCH', '/reports/$reportId/status', body: body);
+    return getReport(reportId);
+  }
+
+  @override
+  Future<int> createPersonnel({
+    required String fullName,
+    required String email,
+    required String password,
+    required int departmentId,
+  }) async {
+    final json = _asMap(await _request(
+      'POST',
+      '/admin/personnel',
+      body: {
+        'full_name': fullName,
+        'email': email,
+        'password': password,
+        'department_id': departmentId,
+      },
+    ));
+    return _parse(() => json['personnel_id'] as int);
   }
 
   void close() => _http.close();
@@ -88,7 +157,9 @@ class ApiClient {
   }) async {
     final uri = Uri.parse('$_baseUrl$path');
     final headers = <String, String>{'Accept': 'application/json'};
-    if (authenticated && token != null) headers['Authorization'] = 'Bearer $token';
+    if (authenticated && token != null) {
+      headers['Authorization'] = 'Bearer $token';
+    }
 
     final http.Response response;
     try {
@@ -97,7 +168,16 @@ class ApiClient {
       } else if (method == 'POST') {
         headers['Content-Type'] = 'application/json; charset=utf-8';
         response = await _http
-            .post(uri, headers: headers, body: utf8.encode(jsonEncode(body ?? <String, dynamic>{})))
+            .post(uri,
+                headers: headers,
+                body: utf8.encode(jsonEncode(body ?? <String, dynamic>{})))
+            .timeout(timeout);
+      } else if (method == 'PATCH') {
+        headers['Content-Type'] = 'application/json; charset=utf-8';
+        response = await _http
+            .patch(uri,
+                headers: headers,
+                body: utf8.encode(jsonEncode(body ?? <String, dynamic>{})))
             .timeout(timeout);
       } else {
         throw ArgumentError('Unsupported HTTP method: $method');
@@ -131,7 +211,8 @@ class ApiClient {
   }
 
   ApiException _errorFrom(int status, dynamic decoded) {
-    if (decoded is Map<String, dynamic> && decoded['error'] is Map<String, dynamic>) {
+    if (decoded is Map<String, dynamic> &&
+        decoded['error'] is Map<String, dynamic>) {
       final err = decoded['error'] as Map<String, dynamic>;
       return ApiException(
         code: (err['code'] as String?) ?? 'HTTP_ERROR',
